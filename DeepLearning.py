@@ -30,7 +30,7 @@ temp = float_data[:, 1]  # temperature (in degrees Celsius)
 plt.plot(range(len(temp)), temp)
 plt.show()
 
-plt.plot(range(1440), temp[:1440])
+plt.plot(range(551), temp[420000:])
 plt.show()
 
 mean = float_data[:200000].mean(axis=0)
@@ -65,7 +65,7 @@ def generator(data, lookback, delay, min_index, max_index,
         
 lookback = 1440
 step = 6
-delay = 144
+delay = 1
 batch_size = 128
 
 train_gen = generator(float_data,
@@ -87,7 +87,7 @@ test_gen = generator(float_data,
                      lookback=lookback,
                      delay=delay,
                      min_index=300001,
-                     max_index=None,
+                     max_index=420000,
                      step=step,
                      batch_size=batch_size)
 
@@ -97,7 +97,7 @@ val_steps = (300000 - 200001 - lookback) // batch_size
 
 # This is how many steps to draw from `test_gen`
 # in order to see the whole test set:
-test_steps = (len(float_data) - 300001 - lookback) // batch_size
+test_steps = (420000 - 300001 - lookback) // batch_size
 
 from keras.models import Sequential
 from keras import layers
@@ -120,5 +120,12 @@ future_temperature = model.predict(test_gen, steps = test_steps)
 print("TEMP")
 fut = np.concatenate(future_temperature)
 prev = np.mean(fut)
-print(float_data[420545])
-print(prev)
+
+# Escalado de datos para mostrar la prediccion en grados celsius
+
+meana = float_data[300001:420000].mean(axis=0)
+prev += meana
+stda = float_data[300001:420000].std(axis=0)
+prev *= stda
+
+print(np.absolute(np.mean(prev)))
