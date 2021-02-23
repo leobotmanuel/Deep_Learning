@@ -65,7 +65,7 @@ def generator(data, lookback, delay, min_index, max_index,
         
 lookback = 1440
 step = 6
-delay = 1
+delay = 500
 batch_size = 128
 
 train_gen = generator(float_data,
@@ -123,9 +123,15 @@ prev = np.mean(fut)
 
 # Escalado de datos para mostrar la prediccion en grados celsius
 
-meana = float_data[300001:420000].mean(axis=0)
-prev += meana
 stda = float_data[300001:420000].std(axis=0)
 prev *= stda
+meana = float_data[300001:420000].mean(axis=0)
+prev += meana
+
 
 print(np.absolute(np.mean(prev)))
+
+# Mostramos una grafica con la prediccion y los ultimos datos registrados
+
+plt.plot(temp[419000:420000])
+plt.show()
