@@ -65,7 +65,7 @@ def generator(data, lookback, delay, min_index, max_index,
         
 lookback = 1440
 step = 6
-delay = 500
+delay = 144
 batch_size = 128
 
 train_gen = generator(float_data,
@@ -129,9 +129,10 @@ meana = float_data[300001:420000].mean(axis=0)
 prev += meana
 
 
-print(np.absolute(np.mean(prev)))
+print(np.mean(prev))
 
 # Mostramos una grafica con la prediccion y los ultimos datos registrados
 
 plt.plot(temp[419000:420000])
+plt.plot(delay+1000,np.mean(prev)*(-1), marker="X", color="red")
 plt.show()
