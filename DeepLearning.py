@@ -1,10 +1,16 @@
 # ARGONAUTEX 2021 --> Deep Learning for Time series predictions
 
 from tensorflow import keras
+import tensorflow as tf
+import pandas as pd
+
 import os
 
+df = pd.read_csv("jena_climate_2009_2016.csv", usecols= ["Date Time", "p (mbar)", "T (degC)", "rh (%)"])
+df.to_csv('bigdataset.csv', index=False)
+
 data_dir = '/home/leonardo/Documentos/saul'
-fname = os.path.join(data_dir, 'jena_climate_2009_2016.csv')
+fname = os.path.join(data_dir, 'bigdataset.csv')
 
 f = open(fname)
 data = f.read()
@@ -12,17 +18,21 @@ f.close()
 
 lines = data.split('\n')
 header = lines[0].split(',')
-lines = lines[1:]
+lines = lines[1:420552]
 
 print(header)
 print(len(lines))
 
 import numpy as np
 
+# Parse the data
+
 float_data = np.zeros((len(lines), len(header) - 1))
 for i, line in enumerate(lines):
     values = [float(x) for x in line.split(',')[1:]]
     float_data[i, :] = values
+print(float_data.shape)
+
 
 from matplotlib import pyplot as plt
 
@@ -37,6 +47,7 @@ mean = float_data[:200000].mean(axis=0)
 float_data -= mean
 std = float_data[:200000].std(axis=0)
 float_data /= std
+
 
 def generator(data, lookback, delay, min_index, max_index,
               shuffle=False, batch_size=128, step=6):
@@ -104,7 +115,7 @@ from keras import layers
 from keras.optimizers import RMSprop
 
 model = Sequential()
-model.add(layers.GRU(32, input_shape=(None, float_data.shape[-1])))
+model.add(layers.GRU(32, input_shape=(None, data_tabl.shape[-1])))
 model.add(layers.Dense(1))
 
 model.compile(optimizer=RMSprop(), loss='mae')
@@ -117,7 +128,7 @@ history = model.fit(train_gen,
 
 
 future_temperature = model.predict(test_gen, steps = test_steps)
-print("TEMP")
+print("Temperatura tras " + str(delay) + " pasos de tiempo: ")
 fut = np.concatenate(future_temperature)
 prev = np.mean(fut)
 
