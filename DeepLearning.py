@@ -1,10 +1,17 @@
 # ARGONAUTEX 2021 --> Deep Learning for Time series predictions
 
-from tensorflow import keras
-import tensorflow as tf
-import pandas as pd
+# Importamos las librerias
 
+from tensorflow import keras
+import pandas as pd
 import os
+import numpy as np
+from matplotlib import pyplot as plt
+from keras.models import Sequential
+from keras import layers
+from keras.optimizers import RMSprop
+
+# Importamos el dataset de entrenamiento y de validacion
 
 df = pd.read_csv("jena_climate_2009_2016.csv", usecols= ["Date Time", "p (mbar)", "T (degC)", "rh (%)"])
 df.to_csv('bigdataset.csv', index=False)
@@ -20,34 +27,50 @@ lines = data.split('\n')
 header = lines[0].split(',')
 lines = lines[1:420552]
 
-print(header)
-print(len(lines))
+# Importamos el dataset del CanSat
 
-import numpy as np
+cansat_dir = '/home/leonardo/Documentos/saul'
+cname = os.path.join(cansat_dir, 'datos_del_CanSat.csv')
 
-# Parse the data
+c = open(cname)
+data_cansat = c.read()
+c.close()
+
+lines_cansat = data_cansat.split('\n')
+header_cansat = lines_cansat[0].split(',')
+lines_cansat = lines_cansat[1:100]
+
+# Parseamos el dataset de entrenamiento y de validacion
 
 float_data = np.zeros((len(lines), len(header) - 1))
 for i, line in enumerate(lines):
     values = [float(x) for x in line.split(',')[1:]]
     float_data[i, :] = values
-print(float_data.shape)
 
+# Parseamos los datos del cansat
 
-from matplotlib import pyplot as plt
+float_data_cansat = np.zeros((len(lines_cansat), len(header_cansat) - 1))
+for i, line_cansat in enumerate(lines_cansat):
+    values_cansat = [float(l) for l in line_cansat.split(',')[1:]]
+    float_data_cansat[i, :] = values_cansat
+    
+# Definimos el valor que vamos a predecir, temperatura
 
-temp = float_data[:, 1]  # temperature (in degrees Celsius)
+temp = float_data[:, 1]
 plt.plot(range(len(temp)), temp)
 plt.show()
 
 plt.plot(range(551), temp[420000:])
 plt.show()
 
+# Escalamos los datos a cierto rango para ajustarlos al optimizador rmsprop
+
 mean = float_data[:200000].mean(axis=0)
 float_data -= mean
 std = float_data[:200000].std(axis=0)
 float_data /= std
 
+# Generamos los datasets de entrenamiento, de validacion y del cansat
 
 def generator(data, lookback, delay, min_index, max_index,
               shuffle=False, batch_size=128, step=6):
@@ -74,10 +97,10 @@ def generator(data, lookback, delay, min_index, max_index,
             targets[j] = data[rows[j] + delay][1]
         yield samples, targets
         
-lookback = 1440
-step = 6
-delay = 144
-batch_size = 128
+lookback = 1440 # Cuantos datos se escogen del pasado para estudiar las futuras tendencias
+step = 6 # Cuantos datos nos saltamos para hacer el generador
+delay = 144 # Numero de pasos de tiempo para la prediccion
+batch_size = 128 # Numero de datos que se emplearan en cada epoch
 
 train_gen = generator(float_data,
                       lookback=lookback,
@@ -102,20 +125,18 @@ test_gen = generator(float_data,
                      step=step,
                      batch_size=batch_size)
 
-# This is how many steps to draw from `val_gen`
-# in order to see the whole validation set:
+# Pasos del generador de validacion
+
 val_steps = (300000 - 200001 - lookback) // batch_size
 
-# This is how many steps to draw from `test_gen`
-# in order to see the whole test set:
+# Pasos del generador del cansat
+
 test_steps = (420000 - 300001 - lookback) // batch_size
 
-from keras.models import Sequential
-from keras import layers
-from keras.optimizers import RMSprop
+# Definimos el modelo y lo compilamos
 
 model = Sequential()
-model.add(layers.GRU(32, input_shape=(None, data_tabl.shape[-1])))
+model.add(layers.GRU(32, input_shape=(None, float_data.shape[-1])))
 model.add(layers.Dense(1))
 
 model.compile(optimizer=RMSprop(), loss='mae')
@@ -125,25 +146,26 @@ history = model.fit(train_gen,
                     validation_data=val_gen,
                     validation_steps=val_steps)
 
-
+# Realizamos las predicciones
 
 future_temperature = model.predict(test_gen, steps = test_steps)
 print("Temperatura tras " + str(delay) + " pasos de tiempo: ")
 fut = np.concatenate(future_temperature)
 prev = np.mean(fut)
 
-# Escalado de datos para mostrar la prediccion en grados celsius
+# Desescalado de datos para mostrar la prediccion en grados celsius
 
 stda = float_data[300001:420000].std(axis=0)
 prev *= stda
 meana = float_data[300001:420000].mean(axis=0)
 prev += meana
 
+# Mostramos el valor de la predicion
 
 print(np.mean(prev))
 
 # Mostramos una grafica con la prediccion y los ultimos datos registrados
 
 plt.plot(temp[419000:420000])
-plt.plot(delay+1000,np.mean(prev)*(-1), marker="X", color="red")
+plt.plot(delay+1000,np.mean(prev)*(1), marker="X", color="red")
 plt.show()
