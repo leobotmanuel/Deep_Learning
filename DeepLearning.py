@@ -67,6 +67,11 @@ model.fit(x_train, y_train, epochs=2, batch_size=32)
 prediction = model.predict(x_test[-100:])
 prediction = scaler.inverse_transform(prediction)
 
-plt.plot(prediction, 100, color="r")
+x_matplol = []
+for g in range (len(df_cansat.values), len(prediction)+len(df_cansat.values)):
+    x_matplol.append(g)
+
+plt.plot(x_matplol, prediction, 100, color="r")
 plt.plot(df_cansat.values, color="g")
+plt.ylim(-10, 30)
 plt.show()
