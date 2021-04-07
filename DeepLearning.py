@@ -71,7 +71,10 @@ x_matplol = []
 for g in range (len(df_cansat.values), len(prediction)+len(df_cansat.values)):
     x_matplol.append(g)
 
-plt.plot(x_matplol, prediction, 100, color="r")
-plt.plot(df_cansat.values, color="g")
+plt.plot(x_matplol, prediction, color="r", label="predicción")
+plt.plot(df_cansat.values, color="g", label="valores reales")
+plt.legend()
+plt.xlabel("Pasos de tiempo")
+plt.ylabel("Temperatura")
 plt.ylim(-10, 30)
 plt.show()
